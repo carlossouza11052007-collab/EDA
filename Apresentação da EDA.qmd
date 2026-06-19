@@ -1,0 +1,165 @@
+---
+title: "Apresentação da EDA"
+subtitle: "Explorando os Dados da (AGU): Uma Análise Exploratória (EDA) do Portal da Transparência"
+author: "Carlos Eduardo Silva Sousa"
+format: revealjs
+editor: visual
+---
+
+```{r}
+
+library(gganimate)
+library(readxl)
+library("janitor")
+library("tidyverse")
+library(ggthemes)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+
+trabalho1_excel <- read_excel("trabalho1_excel.xls")
+
+trabalho1_excel <- clean_names(trabalho1_excel)
+
+trabalho1_excel <- rename(trabalho1_excel,
+                      descricao_despesa = descricao_da_natureza_da_despesa,
+                      cod_orcamentaria=codigo_unidade_orcamentaria,
+                      nm_und_orcamentaria=nome_unidade_orcamentaria,
+                      cod_despesa=codigo_da_natureza_da_despesa)
+
+dados <- trabalho1_excel |> filter(nome_orgao=="MINISTERIO DA EDUCACAO")
+
+dados <- trabalho1_excel |> filter(nm_und_orcamentaria=="MINISTÉRIO DA EDUCAÇÃO")
+```
+
+-   Data da análise: 14 de abril de 2026.
+
+-   Fonte dos dados: Portal da Transparência da Advocacia-Geral da União (AGU).
+
+-   Objetivo da EDA:
+
+    -   Estruturar os dados extraídos.
+
+    -   Sintetizar propriedades estatísticas.
+
+    -   Utilizar métodos analíticos e recursos visuais.
+
+-   Base de dados original:
+
+    -   65.535 observações.
+    -   12 variáveis.
+
+##
+
+-   Recorte utilizado no estudo:
+
+    -   681 observações.
+    -   12 variáveis.
+    -   Dados referentes ao Ministério da Educação.
+
+-   Variáveis analisadas:
+
+    -   Valor Liquidado: comprovação da execução do serviço.
+    -   Valor Pago: quitação total ou parcial da despesa.
+    -   Ano de Execução: período de realização da despesa.
+
+##
+
+-   Foco da análise:
+
+    -   Investigar a correlação entre as variáveis.
+    -   Avaliar o comportamento dos valores ao longo do tempo.
+    -   Analisar o histórico de pagamentos.
+    -   Verificar o nível de quitação dos serviços prestados.
+
+-   Resultado esperado:
+
+    -   Compreender padrões e tendências da execução orçamentária do Ministério da Educação.
+
+##
+
+Gráfico de disperção :
+
+```{r}
+ggplot(
+  data = dados,
+  mapping = aes(x = valor_liquidado , y = valor_pago)
+) +
+  geom_point() +  
+  theme_classic() +
+  labs(
+    title = "Disperção entre o Valor Liquidado e o Valor Pago ",
+    subtitle = "Dimensões entre os Valore Liquidado e Pago ",
+    x = "Valor Liquidado (R$)", y = "Valor Pago  (R$)"
+  )
+```
+O gráfico de dispersão mostra que os valores pagos não ultrapassam os valores liquidados.
+
+## 
+
+```{r}
+
+grafico_base <- ggplot(data = dados, aes(x = valor_liquidado, y = valor_pago, group = ano_execucao)) +
+  geom_point(aes(color = valor_pago), size = 3, alpha = 0.7) +
+  scale_color_viridis_c() +
+  theme_classic() +
+  labs(
+    title = "Dispersão Interativa: Valor Liquidado vs Valor Pago", 
+    x = "Valor Liquidado (R$)",
+    y = "Valor Pago (R$)"
+  ) +
+   transition_time(ano_execucao) +
+  shadow_wake(wake_length = 0.1, alpha = FALSE)
+animate(grafico_base, renderer = gifski_renderer())
+
+```
+Gráfico de dispersão: confirma a relação entre valores liquidados e pagos.
+
+## 
+
+Gráfico de Densidade :
+
+```{r}
+dados2 <- dados %>% 
+  mutate(difer = valor_liquidado - valor_pago) %>%
+  filter(!is.na(difer))
+
+p1 <- ggplot(dados2, aes(x = difer)) +
+  geom_density(fill = "blue", alpha = 0.3) +
+  labs(title = "Gráfico de Densidade Interativo", x = "Diferença", y = "Densidade") +
+  theme_minimal() +
+  theme_classic()
+
+gg_density <- ggplotly(p1)
+gg_density
+
+```
+A densidade da diferença (Valor Pago − Valor Liquidado) indica que os serviços foram quitados total ou parcialmente oque evidencia o volume e a concentração das quitações.
+
+## 
+
+Gráfico de Barras :
+
+```{r}
+
+ggplot(dados2, aes(x = ano_execucao, y = difer)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  theme_classic() +
+  labs(title = "Meu Gráfico de Barras", x = "Ano de Execução", y = "Diferença entre os Valores liquidado e pago  ")
+
+```
+Gráfico de barras: apresenta a distribuição temporal das quitações.
+ 
+## 
+-   Forte correlação entre os valores liquidados e pagos.
+
+-   2018 foi o único ano com quitação parcial significativa dos serviços.
+
+-   Nos demais anos, a quitação registrada foi reduzida ou inexistente.
+
+-   O gráfico de barras evidencia a concentração dos pagamentos em 2018.
+
+## Conclusão
+
+-   Baixa divergência: forte concentração dos dados próxima de zero indica pequena diferença entre os valores liquidados e pagos.
+-   Conclusão: os pagamentos acompanharam os valores liquidados, demonstrando consistência no processo de quitação das despesas.
