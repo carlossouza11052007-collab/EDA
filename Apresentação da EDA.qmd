@@ -109,37 +109,64 @@ O gráfico de dispersão mostra que os valores pagos não ultrapassam os valores
 ## 
 
 ```{r}
-grafico_base <- ggplot(
-  data = dados,
-  aes(x = valor_liquidado, y = valor_pago, group = ano_execucao)
+grafico <- ggplot(
+  dados,
+  aes(
+    x = valor_liquidado,
+    y = valor_pago,
+    color = as.factor(ano_execucao),
+    text = paste0(
+      "Ano: ", ano_execucao,
+      "<br>Valor Liquidado: R$ ",
+      comma(valor_liquidado,
+             big.mark = ".",
+             decimal.mark = ","),
+      "<br>Valor Pago: R$ ",
+      comma(valor_pago,
+             big.mark = ".",
+             decimal.mark = ",")
+    )
+  )
 ) +
-  geom_point(aes(color = valor_pago), size = 3, alpha = 0.7) +
-  scale_color_viridis_c() +
-
+  geom_point(
+    size = 5,
+    alpha = 0.8
+  ) +
+  scale_color_viridis_d(
+    option = "turbo",
+    name = "Ano"
+  ) +
+  theme_classic() +
   scale_x_continuous(
     labels = label_number(
-      big.mark = ".",
-      decimal.mark = ","
+      scale = 1e-6,
+      suffix = " Mi"
     )
   ) +
-
   scale_y_continuous(
     labels = label_number(
-      big.mark = ".",
-      decimal.mark = ","
+      scale = 1e-6,
+      suffix = " Mi"
     )
   ) +
-
-  theme_classic() +
   labs(
-    title = "Dispersão Interativa: Valor Liquidado vs Valor Pago",
-    x = "Valor Liquidado (R$)",
-    y = "Valor Pago (R$)"
+    title = "Dispersão entre o Valor Liquidado e o Valor Pago",
+    subtitle = "Valores em milhões de reais",
+    x = "Valor Liquidado (R$ milhões)",
+    y = "Valor Pago (R$ milhões)"
   ) +
-  transition_time(ano_execucao) +
-  shadow_wake(wake_length = 0.1, alpha = FALSE)
+  theme(
+    plot.title = element_text(
+      size = 16,
+      face = "bold"
+    ),
+    legend.position = "right"
+  )
 
-animate(grafico_base, renderer = gifski_renderer())
+ggplotly(
+  grafico,
+  tooltip = "text"
+)
 ```
 
 Gráfico de dispersão: confirma a relação entre valores liquidados e pagos.
