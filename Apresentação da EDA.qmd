@@ -7,7 +7,6 @@ editor: visual
 ---
 
 ```{r}
-
 library(gganimate)
 library(readxl)
 library("janitor")
@@ -16,6 +15,8 @@ library(ggthemes)
 library(ggplot2)
 library(plotly)
 library(dplyr)
+library(ggplot2)
+library(scales)
 
 trabalho1_excel <- read_excel("trabalho1_excel.xls")
 
@@ -30,6 +31,11 @@ trabalho1_excel <- rename(trabalho1_excel,
 dados <- trabalho1_excel |> filter(nome_orgao=="MINISTERIO DA EDUCACAO")
 
 dados <- trabalho1_excel |> filter(nm_und_orcamentaria=="MINISTÉRIO DA EDUCAÇÃO")
+
+dados2 <- dados %>% 
+  mutate(difer = valor_liquidado - valor_pago) %>%
+  filter(!is.na(difer))
+
 ```
 
 -   Data da análise: 14 de abril de 2026.
@@ -49,7 +55,7 @@ dados <- trabalho1_excel |> filter(nm_und_orcamentaria=="MINISTÉRIO DA EDUCAÇ�
     -   65.535 observações.
     -   12 variáveis.
 
-##
+## 
 
 -   Recorte utilizado no estudo:
 
@@ -63,7 +69,7 @@ dados <- trabalho1_excel |> filter(nm_und_orcamentaria=="MINISTÉRIO DA EDUCAÇ�
     -   Valor Pago: quitação total ou parcial da despesa.
     -   Ano de Execução: período de realização da despesa.
 
-##
+## 
 
 -   Foco da análise:
 
@@ -76,43 +82,66 @@ dados <- trabalho1_excel |> filter(nm_und_orcamentaria=="MINISTÉRIO DA EDUCAÇ�
 
     -   Compreender padrões e tendências da execução orçamentária do Ministério da Educação.
 
-##
+## 
 
 Gráfico de disperção :
-
 ```{r}
+
+
 ggplot(
   data = dados,
-  mapping = aes(x = valor_liquidado , y = valor_pago)
+  mapping = aes(x = valor_liquidado, y = valor_pago)
 ) +
-  geom_point() +  
+  geom_point() +
   theme_classic() +
+  scale_x_continuous(labels = label_number(big.mark = ".", decimal.mark = ",")) +
+  scale_y_continuous(labels = label_number(big.mark = ".", decimal.mark = ",")) +
   labs(
-    title = "Disperção entre o Valor Liquidado e o Valor Pago ",
-    subtitle = "Dimensões entre os Valore Liquidado e Pago ",
-    x = "Valor Liquidado (R$)", y = "Valor Pago  (R$)"
+    title = "Dispersão entre o Valor Liquidado e o Valor Pago",
+    subtitle = "Dimensões entre os Valores Liquidados e Pagos",
+    x = "Valor Liquidado (R$)",
+    y = "Valor Pago (R$)"
   )
 ```
+
 O gráfico de dispersão mostra que os valores pagos não ultrapassam os valores liquidados.
 
 ## 
 
 ```{r}
-
-grafico_base <- ggplot(data = dados, aes(x = valor_liquidado, y = valor_pago, group = ano_execucao)) +
+grafico_base <- ggplot(
+  data = dados,
+  aes(x = valor_liquidado, y = valor_pago, group = ano_execucao)
+) +
   geom_point(aes(color = valor_pago), size = 3, alpha = 0.7) +
   scale_color_viridis_c() +
+
+  scale_x_continuous(
+    labels = label_number(
+      big.mark = ".",
+      decimal.mark = ","
+    )
+  ) +
+
+  scale_y_continuous(
+    labels = label_number(
+      big.mark = ".",
+      decimal.mark = ","
+    )
+  ) +
+
   theme_classic() +
   labs(
-    title = "Dispersão Interativa: Valor Liquidado vs Valor Pago", 
+    title = "Dispersão Interativa: Valor Liquidado vs Valor Pago",
     x = "Valor Liquidado (R$)",
     y = "Valor Pago (R$)"
   ) +
-   transition_time(ano_execucao) +
+  transition_time(ano_execucao) +
   shadow_wake(wake_length = 0.1, alpha = FALSE)
-animate(grafico_base, renderer = gifski_renderer())
 
+animate(grafico_base, renderer = gifski_renderer())
 ```
+
 Gráfico de dispersão: confirma a relação entre valores liquidados e pagos.
 
 ## 
@@ -120,20 +149,31 @@ Gráfico de dispersão: confirma a relação entre valores liquidados e pagos.
 Gráfico de Densidade :
 
 ```{r}
-dados2 <- dados %>% 
-  mutate(difer = valor_liquidado - valor_pago) %>%
-  filter(!is.na(difer))
-
 p1 <- ggplot(dados2, aes(x = difer)) +
   geom_density(fill = "blue", alpha = 0.3) +
-  labs(title = "Gráfico de Densidade Interativo", x = "Diferença", y = "Densidade") +
-  theme_minimal() +
+  scale_x_continuous(
+    labels = label_number(
+      big.mark = ".",
+      decimal.mark = ","
+    )
+  ) +
+  scale_y_continuous(
+    labels = label_number(
+      decimal.mark = ",",
+      accuracy = 0.0000001
+    )
+  ) +
+  labs(
+    title = "Gráfico de Densidade Interativo",
+    x = "Diferença",
+    y = "Densidade"
+  ) +
   theme_classic()
 
 gg_density <- ggplotly(p1)
 gg_density
-
 ```
+
 A densidade da diferença (Valor Pago − Valor Liquidado) indica que os serviços foram quitados total ou parcialmente oque evidencia o volume e a concentração das quitações.
 
 ## 
@@ -141,16 +181,37 @@ A densidade da diferença (Valor Pago − Valor Liquidado) indica que os serviç
 Gráfico de Barras :
 
 ```{r}
-
-ggplot(dados2, aes(x = ano_execucao, y = difer)) +
+ggplot(dados2, aes(x = factor(ano_execucao), y = difer)) +
   geom_bar(stat = "identity", fill = "blue") +
+  scale_x_discrete(
+    breaks = sort(unique(as.character(dados2$ano_execucao)))
+  ) +
+  scale_y_continuous(
+    labels = label_number(
+      big.mark = ".",
+      decimal.mark = "," ,
+      scale = 1e-6 ,
+      suffix = "Mi"
+    )
+  ) +
   theme_classic() +
-  labs(title = "Meu Gráfico de Barras", x = "Ano de Execução", y = "Diferença entre os Valores liquidado e pago  ")
-
+  theme(
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
+  ) +
+  labs(
+   title = "Gráfico de Barras",
+    x = "Ano de Execução",
+    y = "Diferença (R$ milhões)"
+  )
 ```
+
 Gráfico de barras: apresenta a distribuição temporal das quitações.
- 
+
 ## 
+
 -   Forte correlação entre os valores liquidados e pagos.
 
 -   2018 foi o único ano com quitação parcial significativa dos serviços.
